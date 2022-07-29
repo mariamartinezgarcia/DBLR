@@ -4,13 +4,7 @@ from DBLR.DeepBLR import DeepBLR
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 
-# ------------------------------ #
-#       BINARY TOY DATASET       #
-# ------------------------------ #
-
 torch.manual_seed(5)
-
-# --- Gaussian Mixture Model --- #
 
 K = 2       # Dimension of the low-dimensional space
 D = 10000   # Number of input variables
@@ -44,7 +38,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_
 
 # --- Deep Bayesian Logistic Regression model --- #
 # Fully Supervised
-dblr = DeepBLR(D, 100, 100, K, 'binary', percentage=0.2, cuda_device=0)
+dblr = DeepBLR(D, 100, 100, K, input_type, percentage=0.2, cuda_device=0)
 for epoch in range(50):
     dblr.train_epoch(X_train, Y_train, batch_size=N, mc=30, verbose=False)
 
@@ -58,7 +52,7 @@ x_ss = torch.cat((X_train, X_test), 0)
 y_ss = torch.cat((Y_train, Y_test), 0)
 y_ss[Y_train.shape[0]:, :] = np.nan
 
-dblr = DeepBLR(D, 100, 100, K, 'binary', percentage=0.2, cuda_device=0)
+dblr = DeepBLR(D, 100, 100, K, input_type, percentage=0.2, cuda_device=0)
 for epoch in range(80):
     dblr.train_epoch(x_ss, y_ss, batch_size=N, mc=30, verbose=False)
 

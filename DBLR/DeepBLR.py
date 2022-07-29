@@ -250,3 +250,65 @@ class DeepBLR(VariationalLoss):
             predicted_y += torch.sigmoid(z @ self.sample_w)
 
         return predicted_y.data / mc
+
+    def impute(self, x, y, mc=200):
+        """
+            Computes the probability of the label to take value 1 given the input data.
+
+            Args:
+                x (tensor) - tensor of shape (N,D), being N the number of samples
+                    and D the number of features, containing the input data.
+                mc (int, optional) - number of samples used for Monte Carlo
+                    approximation.
+
+            Return:
+                X (tensor) - tensor of shape (N,D), being N the number of samples,
+                    containing the estimated values obtained sampling from the model.
+        """
+
+        self.nn_mean_z.eval()
+        self.nn_cov_z.eval()
+        self.nn_reconstruction_0.eval()
+        self.nn_reconstruction_1.eval()
+
+        x_zeros = x.clone()
+        x_zeros[x_zeros.isnan()] = 0
+        x_zeros.to(self.device)
+
+        x_imputed = torch.zeros(x.shape).to(self.device)
+
+        for i in range(mc):
+            x_aux = torch.zeros(x.shape).to(self.device)
+            # Sample from q(Z|X) to obtain the latent representation
+            self.nn_mean_z.forward(x_zeros)
+            self.nn_cov_z.forward(x_zeros)
+            self.sample_from_q_z()
+
+            # Sample from p(X|Z,y) to obtain the reconstruction
+            z_0 = self.sample_z[torch.where(y == 0)[0], :]
+            z_1 = self.sample_z[torch.where(y == 1)[0], :]
+            self.nn_reconstruction_0.forward(z_0)
+            self.nn_reconstruction_1.forward(z_1)
+
+            if self.input_type == 'real':
+                N0 = self.nn_reconstruction_0.mean.shape[0]
+                N1 = self.nn_reconstruction_1.mean.shape[0]
+                noise0 = torch.randn(N0, x_zeros.shape[1]).to(self.device)
+                noise1 = torch.randn(N1, x_zeros.shape[1]).to(self.device)
+                x0 = self.nn_reconstruction_0.mean + noise0
+                x1 = self.nn_reconstruction_1.mean + noise1
+            if self.input_type == 'binary':
+                x0 = self.nn_reconstruction_0.theta
+                x1 = self.nn_reconstruction_1.theta
+
+            x_aux[torch.where(y == 0)[0], :] = x0
+            x_aux[torch.where(y == 1)[0], :] = x1
+
+            x_imputed += x_aux
+
+        x_imputed = x_imputed/mc
+
+        if self.input_type == 'binary':
+            x_imputed = torch.bernoulli(x_imputed)
+
+        return x_imputed

@@ -2,13 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 from DBLR.DeepBLR import DeepBLR
 
-# ------------------------------ #
-#       BINARY TOY DATASET       #
-# ------------------------------ #
-
 torch.manual_seed(5)
-
-# --- Gaussian Mixture Model --- #
 
 K = 2       # Dimension of the low-dimensional space
 D = 10000   # Number of input variables
@@ -44,7 +38,7 @@ probs_x = torch.sigmoid(Z @ A + bias)
 X = torch.bernoulli(probs_x)
 
 # --- Deep Bayesian Logistic Regression model --- #
-dblr = DeepBLR(D, 100, 100, K, 'binary', percentage=0, cuda_device=0)
+dblr = DeepBLR(D, 100, 100, K, input_type, percentage=0, cuda_device=0)
 for epoch in range(50):
     dblr.train_epoch(X, Y, batch_size=N, mc=30, verbose=False)
 
