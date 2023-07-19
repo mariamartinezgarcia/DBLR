@@ -5,7 +5,7 @@ from .NeuralNetworks import NeuralNetworks
 import numpy as np
 
 
-class VariationalLoss:
+class VariationalLoss(nn.Module):
     def __init__(self, D, hdim_mean, hdim_var, K, input_type, cuda_device):
         self.device = torch.device(
             "cuda:" + str(cuda_device) if torch.cuda.is_available() else "cpu"
