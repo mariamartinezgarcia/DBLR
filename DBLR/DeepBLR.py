@@ -112,6 +112,10 @@ class DeepBLR(VariationalLoss):
             verbose (boolean, optional) - if True, print the ELBO loss value at the end of the epoch.
         """
 
+        # Assert that x and y are tensors, if not return error
+        assert isinstance(x, torch.Tensor), "x must be a Torch.Tensor"
+        assert isinstance(y, torch.Tensor), "y must be a Torch.Tensor"
+
         N = x.shape[0]
 
         # Aux mask to get balanced minibatches:
