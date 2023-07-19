@@ -2,6 +2,8 @@
 
 This code implements a package for the DBLR model, a general purpose classification and dimensionality reduction method. It is a semi-supervised Bayesian latent space model that infers a low-dimensional representation of high-dimensional data driven by the target label. During the inference process, the model also learns a global vector of weights that allows to make predictions given the low-dimensional representation of the observations. Given the probabilistic generative nature of the model, it can handle partially missing entries during training, including not annotated observations as censored samples. 
 
+## Paper
+
 The paper can be found at:
 https://doi.org/10.1109/JBHI.2023.3279493
 https://doi.org/10.1101/2022.12.18.520909
