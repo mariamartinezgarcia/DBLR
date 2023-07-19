@@ -136,7 +136,11 @@ class DeepBLR(VariationalLoss):
 
         # Compute sample weights to obtain balanced minibatches
         count = Counter(mask_aux_minibatch.numpy().astype("int"))
-        class_count = np.array([count[0], count[1], count[2]])
+        # If no missings, class_count will be only 0 and 1
+        if 2 not in count.keys():
+            class_count = np.array([count[0], count[1]])
+        else:
+            class_count = np.array([count[0], count[1], count[2]])
         weight = 1.0 / class_count
         samples_weight = np.array(
             [weight[t] for t in mask_aux_minibatch.numpy().astype("int")]
