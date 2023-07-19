@@ -254,8 +254,8 @@ class VariationalLoss(nn.Module):
 
         elbo_term = 0
 
-        mask_x.to(self.device)
-        mask_y.to(self.device)
+        mask_x = mask_x.to(self.device)
+        mask_y = mask_y.to(self.device)
 
         x0 = x[torch.where(y == 0)[0], :]
         mask_x0 = mask_x[torch.where(y == 0)[0], :].to(self.device)
