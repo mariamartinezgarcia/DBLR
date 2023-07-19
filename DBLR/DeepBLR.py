@@ -112,6 +112,7 @@ class DeepBLR(VariationalLoss):
                approximation.
             verbose (boolean, optional) - if True, print the ELBO loss value at the end of the epoch.
         """
+        self.train()
 
         # Assert that x and y are tensors, if not return error
         assert isinstance(x, torch.Tensor), "x must be a Torch.Tensor"
@@ -275,6 +276,8 @@ class DeepBLR(VariationalLoss):
             y (tensor) - tensor of shape (N,1), being N the number of samples,
                 containing the estimated probabilities.
         """
+
+        self.eval()
 
         N = x.shape[0]
 
