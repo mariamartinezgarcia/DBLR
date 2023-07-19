@@ -116,6 +116,12 @@ class DeepBLR(VariationalLoss):
         assert isinstance(x, torch.Tensor), "x must be a Torch.Tensor"
         assert isinstance(y, torch.Tensor), "y must be a Torch.Tensor"
 
+        # Assert that X is NxD and y is Nx1
+        assert x.shape[0] == y.shape[0], "x and y must have the same number of samples"
+        assert (
+            len(y.shape) == 2
+        ), "y must be a tensor of shape (N,1), being N the number of samples"
+
         N = x.shape[0]
 
         # Aux mask to get balanced minibatches:
