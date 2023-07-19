@@ -2,7 +2,6 @@ import torch
 import math
 from torch import nn
 from .NeuralNetworks import NeuralNetworks
-import numpy as np
 
 
 class VariationalLoss(nn.Module):
