@@ -17,17 +17,21 @@ class VariationalLoss(nn.Module):
 
         # 1. Infer a low-dimensional representation of the observed data [q(Z|X)]
         # NN for the mean
-        self.nn_mean_z = NeuralNetworks(d, k, hdim=hdim_mean, train_mean=True)
+        self.nn_mean_z = NeuralNetworks(self.d, self.k, hdim=hdim_mean, train_mean=True)
         # NN for the covariance
-        self.nn_cov_z = NeuralNetworks(d, k, hdim=hdim_mean, train_cov=True)
+        self.nn_cov_z = NeuralNetworks(self.d, self.k, hdim=hdim_mean, train_cov=True)
 
         self.nn_mean_z.to(self.device)
         self.nn_cov_z.to(self.device)
 
         if input_type == "binary":
             # NNs for the reconstruction (binary input)
-            self.nn_reconstruction_0 = NeuralNetworks(k, d, train_reconstruction=True)
-            self.nn_reconstruction_1 = NeuralNetworks(k, d, train_reconstruction=True)
+            self.nn_reconstruction_0 = NeuralNetworks(
+                self.k, self.d, train_reconstruction=True
+            )
+            self.nn_reconstruction_1 = NeuralNetworks(
+                self.k, self.d, train_reconstruction=True
+            )
 
             self.nn_reconstruction_0.to(self.device)
             self.nn_reconstruction_1.to(self.device)
@@ -35,10 +39,10 @@ class VariationalLoss(nn.Module):
         if input_type == "real":
             # NNs for the reconstruction (real input)
             self.nn_reconstruction_0 = NeuralNetworks(
-                k, d, hdim=hdim_mean, train_mean=True
+                self.k, self.d, hdim=hdim_mean, train_mean=True
             )
             self.nn_reconstruction_1 = NeuralNetworks(
-                k, d, hdim=hdim_mean, train_mean=True
+                self.k, self.d, hdim=hdim_mean, train_mean=True
             )
 
             self.nn_reconstruction_0.to(self.device)
@@ -46,11 +50,19 @@ class VariationalLoss(nn.Module):
 
         # 2. Infer the weights for classification [q(w|Z,y)]
         # NNs for the mean
-        self.nn_mean_0 = NeuralNetworks(k, k + 1, hdim=hdim_mean, train_mean=True)
-        self.nn_mean_1 = NeuralNetworks(k, k + 1, hdim=hdim_mean, train_mean=True)
+        self.nn_mean_0 = NeuralNetworks(
+            self.k, self.k + 1, hdim=hdim_mean, train_mean=True
+        )
+        self.nn_mean_1 = NeuralNetworks(
+            self.k, self.k + 1, hdim=hdim_mean, train_mean=True
+        )
         # NNs for the covariance
-        self.nn_cov_0 = NeuralNetworks(k, k + 1, hdim=hdim_var, train_cov=True)
-        self.nn_cov_1 = NeuralNetworks(k, k + 1, hdim=hdim_var, train_cov=True)
+        self.nn_cov_0 = NeuralNetworks(
+            self.k, self.k + 1, hdim=hdim_var, train_cov=True
+        )
+        self.nn_cov_1 = NeuralNetworks(
+            self.k, self.k + 1, hdim=hdim_var, train_cov=True
+        )
 
         self.nn_mean_0.to(self.device)
         self.nn_mean_1.to(self.device)
