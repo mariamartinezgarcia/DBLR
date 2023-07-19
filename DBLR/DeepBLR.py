@@ -3,6 +3,7 @@ from collections import Counter
 from torch import optim
 import numpy as np
 import torch
+from tqdm import tqdm
 
 
 class DeepBLR(VariationalLoss):
@@ -164,89 +165,90 @@ class DeepBLR(VariationalLoss):
         count = 0
 
         # Loop through all the training samples
-        for i, (data, target) in enumerate(dataloader):
-            unique, counts = np.unique(target, return_counts=True)
-            dicc = dict(zip(unique, counts))
-            nans = len(target) - dicc[0] - dicc[1]
+        with tqdm(dataloader, unit="batch") as tepoch:
+            for i, (data, target) in enumerate(tepoch):
+                unique, counts = np.unique(target, return_counts=True)
+                dicc = dict(zip(unique, counts))
+                nans = len(target) - dicc[0] - dicc[1]
 
-            # we need at leat 2 samples of each class
-            if (0 in dicc.keys()) and (1 in dicc.keys()):
-                if (dicc[0] <= 1) or (dicc[1] <= 1 or nans == 1):
+                # we need at leat 2 samples of each class
+                if (0 in dicc.keys()) and (1 in dicc.keys()):
+                    if (dicc[0] <= 1) or (dicc[1] <= 1 or nans == 1):
+                        continue
+                else:
                     continue
-            else:
-                continue
 
-            # BALANCED MINIBATCH (1/3 observed label 0, 1/3 observed label 1, 1/3 missing)
-            # Mask missing
-            #   0 -> missing
-            #   1 -> observed
-            #   2 -> imputed
+                # BALANCED MINIBATCH (1/3 observed label 0, 1/3 observed label 1, 1/3 missing)
+                # Mask missing
+                #   0 -> missing
+                #   1 -> observed
+                #   2 -> imputed
 
-            mask_missing_minibatch = torch.ones(len(target))
-            mask_missing_minibatch[target.isnan()[:, 0]] = 0
+                mask_missing_minibatch = torch.ones(len(target))
+                mask_missing_minibatch[target.isnan()[:, 0]] = 0
 
-            # Force missing in a percentage of the observed samples for regularization
-            n_imputed_samples = int(
-                len(mask_missing_minibatch[mask_missing_minibatch == 1])
-                * self.percentage
-            )
-
-            # Force missing in a balanced way
-            index_observed_1 = np.where(target == 1)[0]
-            index_observed_0 = np.where(target == 0)[0]
-
-            if (len(index_observed_1) - int(n_imputed_samples / 2)) < 2:
-                index_imputed_0 = np.sort(
-                    np.random.choice(
-                        index_observed_0, int(n_imputed_samples), replace=False
-                    )
+                # Force missing in a percentage of the observed samples for regularization
+                n_imputed_samples = int(
+                    len(mask_missing_minibatch[mask_missing_minibatch == 1])
+                    * self.percentage
                 )
-                mask_missing_minibatch[index_imputed_0] = 2
-            elif (len(index_observed_0) - int(n_imputed_samples / 2)) < 2:
-                index_imputed_1 = np.sort(
-                    np.random.choice(
-                        index_observed_1, int(n_imputed_samples), replace=False
-                    )
-                )
-                mask_missing_minibatch[index_imputed_1] = 2
-            else:
-                index_imputed_1 = np.sort(
-                    np.random.choice(
-                        index_observed_1, int(n_imputed_samples / 2), replace=False
-                    )
-                )
-                index_imputed_0 = np.sort(
-                    np.random.choice(
-                        index_observed_0, int(n_imputed_samples / 2), replace=False
-                    )
-                )
-                mask_missing_minibatch[index_imputed_1] = 2
-                mask_missing_minibatch[index_imputed_0] = 2
 
-            target_missing = target.clone()
-            target_missing[mask_missing_minibatch == 2] = float("nan")
+                # Force missing in a balanced way
+                index_observed_1 = np.where(target == 1)[0]
+                index_observed_0 = np.where(target == 0)[0]
 
-            # Set to zero the missing inputs and generate a mask
-            mask_x_minibatch = torch.ones(data.shape)
-            mask_x_minibatch[data.isnan()] = 0
-            data[data.isnan()] = 0
+                if (len(index_observed_1) - int(n_imputed_samples / 2)) < 2:
+                    index_imputed_0 = np.sort(
+                        np.random.choice(
+                            index_observed_0, int(n_imputed_samples), replace=False
+                        )
+                    )
+                    mask_missing_minibatch[index_imputed_0] = 2
+                elif (len(index_observed_0) - int(n_imputed_samples / 2)) < 2:
+                    index_imputed_1 = np.sort(
+                        np.random.choice(
+                            index_observed_1, int(n_imputed_samples), replace=False
+                        )
+                    )
+                    mask_missing_minibatch[index_imputed_1] = 2
+                else:
+                    index_imputed_1 = np.sort(
+                        np.random.choice(
+                            index_observed_1, int(n_imputed_samples / 2), replace=False
+                        )
+                    )
+                    index_imputed_0 = np.sort(
+                        np.random.choice(
+                            index_observed_0, int(n_imputed_samples / 2), replace=False
+                        )
+                    )
+                    mask_missing_minibatch[index_imputed_1] = 2
+                    mask_missing_minibatch[index_imputed_0] = 2
 
-            # SGD step
-            self.sgd_step(
-                data,
-                target_missing,
-                mask_x=mask_x_minibatch,
-                mask_y=mask_missing_minibatch,
-                mc=mc,
-            )
-            self.mean_ELBO_loss_epoch += -self.ELBO_loss.cpu().data.numpy()
-            self.mean_bce_y_term_epoch += self.bce_y_term.cpu().data.numpy()
-            self.mean_reconstruction_x_term_epoch += (
-                self.reconstruction_x_term.cpu().data.numpy()
-            )
-            self.mean_kl_z_term_epoch += self.kl_z.cpu().data.numpy()
-            self.mean_kl_w_term_epoch += self.kl_w.cpu().data.numpy()
-            count += 1
+                target_missing = target.clone()
+                target_missing[mask_missing_minibatch == 2] = float("nan")
+
+                # Set to zero the missing inputs and generate a mask
+                mask_x_minibatch = torch.ones(data.shape)
+                mask_x_minibatch[data.isnan()] = 0
+                data[data.isnan()] = 0
+
+                # SGD step
+                self.sgd_step(
+                    data,
+                    target_missing,
+                    mask_x=mask_x_minibatch,
+                    mask_y=mask_missing_minibatch,
+                    mc=mc,
+                )
+                self.mean_ELBO_loss_epoch += -self.ELBO_loss.cpu().data.numpy()
+                self.mean_bce_y_term_epoch += self.bce_y_term.cpu().data.numpy()
+                self.mean_reconstruction_x_term_epoch += (
+                    self.reconstruction_x_term.cpu().data.numpy()
+                )
+                self.mean_kl_z_term_epoch += self.kl_z.cpu().data.numpy()
+                self.mean_kl_w_term_epoch += self.kl_w.cpu().data.numpy()
+                count += 1
 
         self.mean_ELBO_loss_epoch = self.mean_ELBO_loss_epoch / count
         self.mean_bce_y_term_epoch = self.mean_bce_y_term_epoch / count
